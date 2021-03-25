@@ -1,0 +1,29 @@
+install steps
+1. use '/data/php/games/zhanhd/shell/sync/sync.php' upload everything needed
+2. install on remote machine
+    1)run install.sh
+    shell> sudo sh /data/php/games/system/install/install.sh
+    
+    2)create node
+    single node mode:
+    shell> sudo sh /data/php/games/system/install/create-node.sh
+    multip node mode:
+    shell> sudo sh /data/php/games/system/install/create-node.sh $nodeid
+
+    3)init node data
+    init single node
+    shell> sh /data/php/games/zhanhd/shell/install/init-node.sh
+    init node $nodeid
+    shell> sh /data/php/games/zhanhd/shell/install/init-node.sh $nodeid
+
+    4)run node
+    run single node
+    shell> sh /data/php/games/zhanhd/shell/install/start.sh
+    run node $nodeid
+    shell> sh /data/php/games/zhanhd/shell/install/start.sh $nodeid
+
+    5)deploy crontab
+    deploy crontab on single node
+    shell> sh /data/php/games/zhanhd/shell/install/crontab.sh
+    deploy crontab on node $nodeid
+    shell> sh /data/php/games/zhanhd/shell/install/crontab.sh $nodeid

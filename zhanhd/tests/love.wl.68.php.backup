@@ -1,0 +1,139 @@
+<?php
+/**
+ * $Id$
+ */
+
+/**
+ *
+ */
+use System\Swoole\Client,
+    System\Stdlib\Object;
+
+/**
+ *
+ */
+use Zhanhd\ReqRes\Relation\Love\Request,
+    Zhanhd\ReqRes\Relation\Love\Response,
+    Zhanhd\ReqRes\Building\ResourceResponse,
+    Zhanhd\Config\Store,
+    Zhanhd\Object\Player\Recent              as PlayerRecent,
+    Zhanhd\Object\Player\Counter\Cycle       as PlayerCounterCycle,
+    Zhanhd\Object\Player\Relation            as PlayerRelation,
+    Zhanhd\Object\Player\Relation\Love       as PlayerRelationLove;
+
+/**
+ *
+ */
+return function(Client $c) {
+    if (-1 === ($request = $this->parseParameters($c, new Request))) {
+        return;
+    }
+
+    $p = $c->local->player;
+    /**
+     * check
+     */
+    $flag = $request->flag->intval();
+    $fid  = $request->fid ->intval();
+
+    if ($flag <> Request::FLAG_FREE && $flag <> Request::FLAG_PAID) {
+        return $c->addReply($this->errorResponse('warning'));
+    }
+
+    $pr = $p->getRelation($fid);
+    if (null === $pr || $pr->flag != PlayerRelation::FLAG_FRIEND) {
+        return $c->addReply($this->errorResponse->error('not your friend'));
+    }
+
+    if ($flag === Request::FLAG_FREE) {
+        if ($p->counterCycle->freeLove >= PlayerCounterCycle::DAILY_LOVE_LIMIT) {
+            return $c->addReply($this->errorResponse->error('times of love reach the maximum'));
+        }
+
+        if ($this->ustime - $p->recent->freeLove < PlayerRecent::CD_FREE_LOVE) {
+            return $c->addReply($this->errorResponse->error('cool down time'));
+        }
+    }
+
+    if ($flag === Request::FLAG_PAID) {
+        $goldRequire = PlayerRelation::PAID_CARDINAL * pow(2, $p->counterCycle->paidLove);
+        if ($p->gold < $goldRequire) {
+            return $c->addReply($this->errorResponse->error('resource not enough'));
+        }
+    }
+
+    /**
+     * love
+     * send response
+     */
+    if ($pr->loveValue == PlayerRelation::LOVE_FULL) {
+        return $c->addReply($this->errorResponse->error('love value reach the maximum'));
+    }
+
+    switch ($flag) {
+    case Request::FLAG_FREE:
+        $pr->loveValue += PlayerRelation::GAIN_FREE;
+
+        $p->counterCycle->freeLove++;
+        $p->recent->freeLove = $this->ustime;
+        break;
+    case Request::FLAG_PAID:
+        $p->decrGold($goldRequire);
+
+        $resourceResponse = new ResourceResponse;
+        $resourceResponse->retval->fromOwnerObject($p);
+        $c->addReply($resourceResponse);
+
+        $pr->loveValue += PlayerRelation::GAIN_PAID;
+        $p->counterCycle->paidLove++;
+        break;
+    }
+
+    $oldBonus = $pr->getBonus();
+    $newBonus = [];
+    foreach (PlayerRelation::$gears as $gear => $value) {
+        if ($pr->loveValue < $value) {
+            break;
+        }
+
+        if (isset($oldBonus->$gear)) {
+            continue;
+        }
+
+        $picks = PlayerRelation::$picks[$gear];
+
+        $seed = array_sum($picks);
+        $rand = mt_rand(1, $seed);
+        foreach ($picks as $gid => $prob) {
+            if ($rand <= $prob) {
+                $newBonus[$gear] = Store::get('egroup', $gid)->pickone();
+                break;
+            }
+            $rand -= $prob;
+        }
+    }
+
+    foreach ($newBonus as $gear => $eid) {
+        $prl = new PlayerRelationLove;
+        $prl->pid  = $pr->pid;
+        $prl->fid  = $pr->fid;
+        $prl->gear = $gear;
+        $prl->eid  = $eid;
+        $prl->flag = PlayerRelationLove::FLAG_ACCEPTING;
+        $prl->save();
+    }
+
+    if ($pr->loveValue > PlayerRelation::LOVE_FULL) {
+        $pr->loveValue = PlayerRelation::LOVE_FULL;
+    }
+
+    $pr->save();
+    $p->save();
+    
+    $r = new Response;
+    $r->fid  ->intval($fid);
+    $r->love ->intval($pr->loveValue);
+    $r->cd   ->intval($p->recent->getFreeLoveCD($this->ustime));
+    $r->times->intval($p->counterCycle->paidLove);
+    $c->addReply($r);
+};

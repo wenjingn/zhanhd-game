@@ -1,0 +1,156 @@
+#!/usr/local/php/bin/php
+<?php
+/**
+ * $Id$
+ */
+
+/**
+ *
+ */
+(new PsrAutoLoader)->register('System', '/data/php/games/system');
+(new PsrAutoLoader)->register('Zhanhd', '/data/php/games/zhanhd');
+
+/**
+ *
+ */
+use System\Stdlib\Object;
+
+/**
+ *
+ */
+use Zhanhd\Config\Store;
+
+/**
+ *
+ */
+$argv = (new Object)->import(getlongopt([
+    'cachefile' => false,
+]));
+
+/**
+ *
+ */
+Store::setup(unserialize(file_get_contents($argv->cachefile)));
+
+/**
+ *
+ */
+do {
+    echo "store> ";
+    $argvs = trim(fgets(STDIN));
+    if (empty($argvs)) {
+        continue;
+    }
+    $argvs   = preg_split('/\s+/', $argvs);
+    $command = null;
+    $table   = null;
+    $id      = null;
+    $flag    = true;
+    foreach ($argvs as $k => $v) {
+        switch ($k) {
+        case 0:
+            $command = $v;
+            break;
+        case 1:
+            $table = $v;
+            break;
+        case 2:
+            $id = trim($v, '\'"');
+            break;
+        }
+    }
+
+    if ($command === 'exit') {
+        break;
+    }
+
+    switch ($command) {
+    case 'help':
+        break;
+    case 'get':
+    case 'has':
+    case 'export':
+        if (false === isset($table)) {
+            printf("Error : wrong argvs. (see help)\n");
+            $flag = false;
+        }
+        break;
+    case 'tab':
+        break;
+    case 'key':
+        if (false === isset($table)) {
+            printf("Error : wrong argvs. (see help)\n");
+            $flag = false;
+        }
+        break;
+    case 'reload':
+        break;
+    default:
+        printf("Error : wrong argvs. (see help)\n");
+        $flag = false;
+        break;
+    }
+    
+    if ($flag === false) {
+        continue;
+    }
+    process($command, $table, $id);
+}while(true);
+
+/**
+ * @param string  $command
+ * @param string  $table
+ * @param integer $id
+ * @return void
+ */
+function process($command, $table = null, $id = null) 
+{
+    global $argv;
+    switch ($command) {
+    case 'help':
+        printf("help : see this help\n");
+        printf("get  : show data struct.\n");
+        printf("       argvs : table [id]\n");
+        printf("has  : show key isset in table.\n");
+        printf("       argvs : table [id]\n");
+        printf("tab  : show tables\n");
+        printf("key  : show keys in table.\n");
+        printf("       argvs : table \n");
+        break;
+    case 'get':
+        if (isset($id)) {
+            if (Store::has($table, $id)) {
+                print_r(Store::get($table, $id));
+            } else {
+                var_dump(null);
+            }
+        } else {
+            print_r(Store::get($table));
+        }
+        break;
+    case 'has':
+        if (isset($id)) {
+            var_dump(Store::has($table, $id));
+        } else {
+            var_dump(Store::has($table));
+        }
+        break;
+    case 'tab':
+        Store::debug();
+        break;
+    case 'key':
+        if (false === Store::has($table)) {
+            var_dump(null);
+        } else {
+            print_r(array_keys(Store::get($table)));
+        }
+        break;
+    case 'reload':
+        Store::setup(unserialize(file_get_contents($argv->cachefile)));
+        break;
+    case 'export':
+        $o = Store::get($table, $id);
+        file_put_contents('/tmp/store-export', str_replace('__set_state(array', '', var_export($o, true)));
+        break;
+    }
+}

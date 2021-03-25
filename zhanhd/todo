@@ -1,0 +1,27 @@
+commands
+
+objects
+    player-increase-entity-wrapper
+
+extensions
+    action-log
+    combat
+        effect
+
+misc
+    player-reward
+        notification-with-reward-type
+
+bug
+
+mysql partition
+    PlayerProfile
+    PlayerReward
+    PlayerLogger
+
+未来版本注意事项
+    shared-command 参考 redis 源码
+    定期清理合并 ReqRes
+    数据结构抽象
+
+heartbeat请求可以不计入SwooleWorker::request-count

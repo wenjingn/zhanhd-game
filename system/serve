@@ -1,0 +1,62 @@
+#!/usr/local/php/bin/php
+<?php
+/**
+ * $Id$
+ */
+
+/**
+ *
+ */
+(new PsrAutoloader)->register('System', '/data/php/games/system');
+
+/**
+ *
+ */
+use System\Stdlib\Object;
+
+/**
+ *
+ */
+use System\Swoole\Server;
+
+/**
+ *
+ */
+Server::getInstance()->start((new Object)->import(getlongopt(array(
+    /**
+     * application configurations
+     */
+    'host'                      => false,
+    'port'                      => 14924,
+    'monitor'                   => 46420,
+
+    'host6'                     => null,
+    'port6'                     => null,
+
+    'verbose'                   => 2,
+    'logfile'                   => null,
+
+    'appdir'                    => '/data/php/games/zhanhd',
+    'rundir'                    => null,
+
+    'bulk-max-size'             => 8192,    /* in byte */
+    'slow-cmd-proc'             => 500000,  /* 1000000 = 1s */
+
+    /**
+     * SwooleServer configurations
+     */
+    'daemonize'                 => 0,
+    'max-connection'            => 1024,
+
+    'worker-num'                => 2,
+    'task-worker-num'           => 2,
+
+    'max-request'               => 1024,
+    'task-max-request'          => 1024,
+
+    'open-cpu-affinity'         => 1,
+    'open-tcp-nodelay'          => 1,
+
+    'heartbeat-idle-time'       => 60,
+    'heartbeat-check-interval'  => 10,
+))));

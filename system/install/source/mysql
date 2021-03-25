@@ -1,0 +1,5 @@
+#!/bin/bash
+curdate=`date +%Y-%m-%d`
+
+/usr/local/mysql/bin/mysqldump -S /dev/shm/mysql.sock -uzhanhd -p2abePZEyzPsTWWcr --no-create-info --skip-extended-insert zhanhd.player > /data/backup/mysql/player-$curdate.sql
+/usr/local/mysql/bin/mysqldump -S /dev/shm/mysql.sock -uzhanhd -p2abePZEyzPsTWWcr --no-create-info --skip-extended-insert zhanhd.global > /data/backup/mysql/global-$curdate.sql
